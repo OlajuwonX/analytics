@@ -56,16 +56,6 @@ if (typeof setInterval !== 'undefined') {
     setInterval(cleanupRateLimitMap, 5 * 60 * 1000);
 }
 
-const PUBLIC_ROUTES = [
-    '/login',
-    '/signup',
-    '/forgot-password',
-    '/reset-password',
-    '/api/auth/login',
-    '/api/auth/signup',
-    '/api/health',
-] as const;
-
 const PROTECTED_ROUTES = [
     '/',
     '/dashboard',
@@ -76,9 +66,7 @@ const PROTECTED_ROUTES = [
     '/profile',
 ] as const;
 
-function isPublicRoute(pathname: string): boolean {
-    return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-}
+
 
 function isProtectedRoute(pathname: string): boolean {
     return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
@@ -133,13 +121,16 @@ export function middleware(request: NextRequest) {
     }
 
     // Authentication checks
-    const isPublic = isPublicRoute(pathname);
     const isProtected = isProtectedRoute(pathname);
     const userIsAuthenticated = isAuthenticated(request);
 
-    // Redirect authenticated users away from login/signup
-    if (userIsAuthenticated && (pathname === '/login' || pathname === '/signup')) {
-        return NextResponse.redirect(new URL('/', request.url));
+    // Prevent redirect loops - if already on login page, allow access
+    if (pathname === '/login' || pathname === '/signup') {
+        if (userIsAuthenticated) {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+        // Allow unauthenticated access to login/signup
+        return NextResponse.next();
     }
 
     // Redirect unauthenticated users to login with return URL
