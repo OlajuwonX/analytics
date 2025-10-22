@@ -6,24 +6,26 @@ on:
   pull_request:
     branches: [main, develop]
 
-# Cancel in-progress runs of the same workflow on the same branch
+# This prevents wasting CI minutes on outdated code
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Job 1: Code Quality & Linting
   lint:
     name: Lint & Format Check
     runs-on: ubuntu-latest
+
     steps:
-      # Checkout the repository code
+      # Step 1: Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           # Fetch only the latest commit for faster checkout
           fetch-depth: 1
 
-      # Setup Node.js environment
+      # Step 2: Setup Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -31,15 +33,13 @@ jobs:
           # Cache npm dependencies for faster subsequent runs
           cache: 'npm'
 
-      # Install dependencies
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      # Run ESLint to check code quality
+      # Step 4: Run ESLint to check code quality
       - name: Run ESLint
         run: npm run lint
-
-      # Check code formatting with Prettier (optional)
 
   # Job 2: Type Checking
   typecheck:
@@ -61,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run TypeScript compiler in check mode
+      # Step 6: Run TypeScript compiler in check mode
       - name: Type check
         run: npx tsc --noEmit
 
@@ -85,9 +85,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run unit tests with Vitest
+      # Step 7: Run unit tests with Vitest
       - name: Run unit tests
-        run: npm run test:unit -- --run --coverage
+        run: npm run test:unit
+
+
 
   # Job 4: Build Verification
   build:
@@ -111,16 +113,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Set environment variables for build
+      # Step 9: Set environment variables for build
       - name: Setup build environment
         run: |
           echo "NEXT_PUBLIC_API_URL=https://api.example.com" >> $GITHUB_ENV
 
-      # Build the Next.js application
+      # Step 10: Build the Next.js application
       - name: Build application
         run: npm run build
 
-      # Cache the build output for E2E tests
+      # Step 11: Cache the build output for E2E tests
       - name: Cache build output
         uses: actions/cache@v3
         with:
@@ -148,14 +150,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Restore cached build
+      # Step 12: Restore cached build
       - name: Restore build cache
         uses: actions/cache@v3
         with:
           path: .next
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
 
-      # Run integration tests
+      # Step 13: Run integration tests
       - name: Run integration tests
         run: npm run test:integration -- --run
 
@@ -180,22 +182,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Install Playwright browsers
+      # Step 14: Install Playwright browsers
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # Restore cached build
+      # Step 15: Restore cached build
       - name: Restore build cache
         uses: actions/cache@v3
         with:
           path: .next
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
 
-      # Run E2E tests
+      # Step 16: Run E2E tests
       - name: Run E2E tests
         run: npm run test:e2e
 
-      # Upload test results and screenshots on failure
+      # Step 17: Upload test results and screenshots on failure
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v3
@@ -223,11 +225,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # Audit dependencies for vulnerabilities
+      # Step 18: Audit dependencies for vulnerabilities
       - name: Run security audit
         run: npm audit --audit-level=high
 
-      # Check for outdated dependencies (optional, doesn't fail build)
+      # Step 19: Check for outdated dependencies (optional, doesn't fail build)
       - name: Check outdated packages
         run: npm outdated || true
 
