@@ -1,44 +1,34 @@
-import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
-// Cleanup after each test
-afterEach(() => {
-    cleanup();
-});
-
-// Mock Next.js router
-vi.mock('next/navigation', () => ({
-    useRouter() {
-        return {
-            push: vi.fn(),
-            replace: vi.fn(),
-            prefetch: vi.fn(),
-            back: vi.fn(),
-            pathname: '/',
-            query: {},
-            asPath: '/',
-        };
+export default defineConfig({
+    plugins: [react()],
+    test: {
+        name: 'unit',
+        environment: 'jsdom',
+        setupFiles: ['./src/tests/setup.ts'],
+        globals: true,
+        css: true,
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'json', 'html', 'lcov'],
+            exclude: [
+                'node_modules/',
+                'src/tests/',
+                '**/*.d.ts',
+                '**/*.config.*',
+                '**/mockData/',
+                'dist/',
+                '.next/',
+            ],
+        },
+        include: ['src/**/*.{test,spec}.{ts,tsx}'],
+        exclude: ['node_modules', 'dist', '.next', 'src/tests/e2e/**', 'src/tests/integration/**'],
     },
-    useSearchParams() {
-        return new URLSearchParams();
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
     },
-    usePathname() {
-        return '/';
-    },
-}));
-
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-    })),
 });
